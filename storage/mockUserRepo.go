@@ -6,13 +6,13 @@ import (
 	"github.com/steve-kaufman/react-blog-api/models"
 )
 
-// TestUserRepository is a mock repository for users
-type TestUserRepository struct {
+// MockUserRepository is a mock repository for users
+type MockUserRepository struct {
 	Users []models.User
 }
 
 // GetByEmail returns a user or an error
-func (repo *TestUserRepository) GetByEmail(email string) (models.User, error) {
+func (repo *MockUserRepository) GetByEmail(email string) (models.User, error) {
 	for _, user := range repo.Users {
 		if user.Email != email {
 			continue
