@@ -31,5 +31,5 @@ jobs:
       # - name: Build
       #   run: go build -v .
 
-      - name: Test Services
-        run: cd services && go test -v .
+      - name: Test
+        run: go test -v ./...
