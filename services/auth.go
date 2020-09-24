@@ -1,9 +1,13 @@
 package services
 
-import "github.com/steve-kaufman/react-blog-api/storage"
+import (
+	"github.com/steve-kaufman/react-blog-api/storage"
+	"github.com/steve-kaufman/react-blog-api/util"
+)
 
 // AuthService is the service for authentication
 type AuthService struct {
+	hasher   util.PasswordHasher
 	userRepo storage.UserRepository
 }
 
@@ -15,11 +19,16 @@ func (service *AuthService) Login(email string, password string) (token string, 
 		return "", ErrUserNotFound
 	}
 
-	if user.Password != password {
+	if user.Password != service.hasher.Hash(password) {
 		return "", ErrBadPassword
 	}
 
 	return "token", nil
+}
+
+// SetHasher sets the PasswordHasher of this service
+func (service *AuthService) SetHasher(hasher util.PasswordHasher) {
+	service.hasher = hasher
 }
 
 // NewAuthService creates a new AuthService
@@ -27,6 +36,7 @@ func NewAuthService(userRepo storage.UserRepository) *AuthService {
 	service := new(AuthService)
 
 	service.userRepo = userRepo
+	service.hasher = new(util.DefaultHasher)
 
 	return service
 }

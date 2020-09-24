@@ -6,24 +6,31 @@ import (
 	"github.com/steve-kaufman/react-blog-api/models"
 	"github.com/steve-kaufman/react-blog-api/services"
 	"github.com/steve-kaufman/react-blog-api/storage"
+	"github.com/steve-kaufman/react-blog-api/util"
 	"github.com/stretchr/testify/assert"
 )
 
 func SetupAuthLoginTest() *services.AuthService {
-	repo := new(storage.TestUserRepository)
+	repo := new(storage.MockUserRepository)
+
+	mockHasher := new(util.MockHasher)
 
 	repo.Users = []models.User{
 		{
 			Email:    "123@example.com",
-			Password: "password1",
+			Password: mockHasher.Hash("password1"),
 		},
 		{
 			Email:    "456@example.com",
-			Password: "password2",
+			Password: mockHasher.Hash("password2"),
 		},
 	}
 
-	return services.NewAuthService(repo)
+	authService := services.NewAuthService(repo)
+
+	authService.SetHasher(mockHasher)
+
+	return authService
 }
 
 func TestLoginFailsWithInvalidUsername(t *testing.T) {
