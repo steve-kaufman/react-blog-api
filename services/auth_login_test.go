@@ -28,7 +28,7 @@ func SetupAuthLoginTest() *services.AuthService {
 
 	authService := services.NewAuthService(repo)
 
-	authService.SetHasher(mockHasher)
+	authService.Hasher = mockHasher
 
 	return authService
 }

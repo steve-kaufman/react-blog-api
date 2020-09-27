@@ -7,7 +7,7 @@ import (
 
 // AuthService is the service for authentication
 type AuthService struct {
-	hasher   util.PasswordHasher
+	Hasher   util.PasswordHasher
 	userRepo storage.UserRepository
 }
 
@@ -19,16 +19,11 @@ func (service *AuthService) Login(email string, password string) (token string, 
 		return "", ErrUserNotFound
 	}
 
-	if user.Password != service.hasher.Hash(password) {
+	if user.Password != service.Hasher.Hash(password) {
 		return "", ErrBadPassword
 	}
 
 	return "token", nil
-}
-
-// SetHasher sets the PasswordHasher of this service
-func (service *AuthService) SetHasher(hasher util.PasswordHasher) {
-	service.hasher = hasher
 }
 
 // NewAuthService creates a new AuthService
@@ -36,7 +31,7 @@ func NewAuthService(userRepo storage.UserRepository) *AuthService {
 	service := new(AuthService)
 
 	service.userRepo = userRepo
-	service.hasher = new(util.DefaultHasher)
+	service.Hasher = new(util.DefaultHasher)
 
 	return service
 }
