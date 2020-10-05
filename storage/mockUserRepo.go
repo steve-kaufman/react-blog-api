@@ -23,3 +23,8 @@ func (repo *MockUserRepository) GetByEmail(email string) (models.User, error) {
 
 	return models.User{}, errors.New("user not found")
 }
+
+// Create creates a user or returns an error
+func (repo *MockUserRepository) Create(userData models.User) (models.User, error) {
+	return models.User{}, nil
+}
