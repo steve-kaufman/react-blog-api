@@ -7,84 +7,134 @@ import (
 	"github.com/steve-kaufman/react-blog-api/services"
 	"github.com/steve-kaufman/react-blog-api/storage"
 	"github.com/steve-kaufman/react-blog-api/util"
-	"github.com/stretchr/testify/assert"
 )
 
-func SetupAuthLoginTest(usersInDB []models.User) *services.AuthService {
+func SetupAuthLoginTest() *services.AuthService {
+	mockHasher := new(util.MockHasher)
+
 	repo := new(storage.MockUserRepository)
-	repo.Users = usersInDB
+	repo.Users = []models.User{
+		{
+			Email:    "123@example.com",
+			Password: mockHasher.Hash("password1"),
+		},
+		{
+			Email:    "456@website.com",
+			Password: mockHasher.Hash("password2"),
+		},
+		{
+			Email:    "789@foo.com",
+			Password: mockHasher.Hash("password3"),
+		},
+		{
+			Email:    "johndoe@bar.com",
+			Password: mockHasher.Hash("password4"),
+		},
+		{
+			Email:    "johndoe@example.com",
+			Password: mockHasher.Hash("password5"),
+		},
+		{
+			Email:    "janedoe@example.com",
+			Password: mockHasher.Hash("password6"),
+		},
+	}
 
 	authService := services.NewAuthService(repo)
 	authService.Hasher = new(util.MockHasher)
 	return authService
 }
 
-type InvalidEmailTest struct {
-	name       string
-	usersInDB  []models.User
-	inputEmail string
+type BadLoginTest struct {
+	name          string
+	inputEmail    string
+	inputPassword string
+	expectedError error
 }
 
-func TestLoginFailsWithInvalidEmail(t *testing.T) {
-	tests := []InvalidEmailTest{
+func TestLoginFailsWithInvalidCredentials(t *testing.T) {
+	tests := []BadLoginTest{
 		{
-			name: "1",
-			usersInDB: []models.User{
-				{
-					Email:    "123@example.com",
-					Password: "password",
-				},
-				{
-					Email:    "456@example.com",
-					Password: "password",
-				},
-			},
-			inputEmail: "johndoe@example.com",
+			name:          "wrong name right domain right password",
+			inputEmail:    "nobody@example.com",
+			inputPassword: "password1",
+			expectedError: services.ErrUserNotFound,
+		},
+		{
+			name:          "wrong name right domain wrong password",
+			inputEmail:    "nobody@example.com",
+			inputPassword: "badpassword",
+			expectedError: services.ErrUserNotFound,
+		},
+		{
+			name:          "wrong domain right name right password",
+			inputEmail:    "123@wrong.com",
+			inputPassword: "password1",
+			expectedError: services.ErrUserNotFound,
+		},
+		{
+			name:          "wrong name wrong domain",
+			inputEmail:    "bad@wrong.com",
+			inputPassword: "password1",
+			expectedError: services.ErrUserNotFound,
+		},
+		{
+			name:          "right name right domain wrong password",
+			inputEmail:    "johndoe@example.com",
+			inputPassword: "badpassword",
+			expectedError: services.ErrBadPassword,
+		},
+		{
+			name:          "right name right domain wrong password",
+			inputEmail:    "789@foo.com",
+			inputPassword: "badpassword",
+			expectedError: services.ErrBadPassword,
 		},
 	}
 
 	for _, test := range tests {
-		authService := SetupAuthLoginTest(test.usersInDB)
+		t.Run(test.name, func(t *testing.T) {
+			authService := SetupAuthLoginTest()
 
-		token, err := authService.Login(test.inputEmail, "password")
+			token, err := authService.Login(test.inputEmail, test.inputPassword)
 
-		if want, got := "", token; want != got {
-			t.Error("Expected token to be empty")
-		}
-		if want, got := services.ErrUserNotFound, err; want != got {
-			t.Error("Expected error to be of type 'ErrUserNotFound'")
-		}
+			if want, got := "", token; want != got {
+				t.Error("Expected token to be empty")
+			}
+			if want, got := test.expectedError, err; want != got {
+				t.Error("Expected error to be of type 'ErrUserNotFound'")
+			}
+		})
 	}
 }
 
-func TestLoginFailsWithInvalidPassword(t *testing.T) {
-	authService := SetupAuthLoginTest([]models.User{
-		{
-			Email:    "123@example.com",
-			Password: "password",
-		},
-	})
-
-	token, err := authService.Login("123@example.com", "wrongpassword")
-
-	assert.Empty(t, token)
-	assert.Same(t, services.ErrBadPassword, err)
+type GoodLoginTest struct {
+	name          string
+	inputEmail    string
+	inputPassword string
 }
 
 func TestLoginSucceedsWithValidInfo(t *testing.T) {
-	authService := SetupAuthLoginTest([]models.User{
-		{
-			Email:    "123@example.com",
-			Password: new(util.MockHasher).Hash("password1"),
-		},
-		{
-			Email:    "456@example.com",
-			Password: new(util.MockHasher).Hash("password2"),
-		},
-	})
+	authService := SetupAuthLoginTest()
 
-	token, err := authService.Login("456@example.com", "password2")
+	tests := []GoodLoginTest{
+		{
+			name:          "1",
+			inputEmail:    "123@example.com",
+			inputPassword: "password1",
+		},
+	}
 
-	assert.NotEmpty(t, token)
-	assert.Nil(t, err)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			token, err := authService.Login(test.inputEmail, test.inputPassword)
+
+			if token == "" {
+				t.Error("Expected a token")
+			}
+			if err != nil {
+				t.Error("Expected no error")
+			}
+		})
+	}
 }
